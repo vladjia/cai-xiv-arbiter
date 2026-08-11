@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>菜菜的裁決台</title>
+<meta name="description" content="FF14 零式戰利品分配">
+<meta property="og:title" content="菜菜的裁決台">
+<meta property="og:description" content="FF14 零式戰利品分配">
+<link rel="icon" href="vladjia.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400&family=Noto+Sans+TC:wght@400;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#100B18; --panel:#1C1528; --line:#3A2D4F;
+  --arc:#C0A2F0; --gold:#F0C88E; --ember:#FF8FA8;
+  --fog:#9C90B2; --bone:#EFE8F8;
+  --disp:'Anton',Impact,'Noto Sans TC',sans-serif;
+  --body:'Noto Sans TC',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--ink);color:var(--bone);font-family:var(--body);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;position:relative;-webkit-text-size-adjust:100%;
+  -webkit-tap-highlight-color:transparent;
+}
+/* 底層氛圍 */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;
+  background:
+    repeating-linear-gradient(115deg,transparent 0 26px,rgba(192,162,240,.02) 26px 27px),
+    radial-gradient(130% 80% at 50% -10%,rgba(192,162,240,.16),transparent 62%),
+    radial-gradient(90% 60% at 50% 115%,rgba(240,200,142,.07),transparent 60%);
+}
+
+#ae{position:fixed;inset:0;z-index:0;pointer-events:none}
+.stage{position:relative;z-index:1;text-align:center;padding:24px}
+
+.eyebrow{
+  font-family:var(--mono);font-size:10px;letter-spacing:.42em;color:var(--fog);
+  text-transform:uppercase;margin-bottom:16px;
+  opacity:0;animation:up .7s .15s cubic-bezier(.2,.9,.3,1) forwards;
+}
+h1{
+  font-family:var(--disp);font-weight:900;line-height:.98;letter-spacing:.03em;
+  font-size:clamp(46px,13vw,108px);
+  opacity:0;filter:blur(14px);transform:translateY(18px) scale(1.04);
+  animation:title .85s .3s cubic-bezier(.15,.9,.25,1) forwards;
+  text-shadow:6px 6px 0 rgba(192,162,240,.16),-3px -3px 0 rgba(255,143,168,.12),
+              0 8px 50px rgba(0,0,0,.8);
+}
+h1 em{font-style:normal;color:var(--arc)}
+.sub{
+  font-family:var(--mono);font-size:11px;letter-spacing:.24em;color:var(--fog);
+  margin-top:18px;opacity:0;animation:up .7s .72s cubic-bezier(.2,.9,.3,1) forwards;
+}
+
+/* START */
+.go{
+  position:relative;display:inline-block;margin-top:46px;padding:17px 52px;
+  background:none;border:none;cursor:pointer;color:inherit;
+  opacity:0;animation:up .6s 1s cubic-bezier(.2,1.1,.3,1) forwards;
+  -webkit-tap-highlight-color:transparent;
+}
+.go::before{
+  content:'';position:absolute;inset:0;background:var(--arc);
+  transform:skewX(-18deg);border-radius:2px;transition:.18s;
+  box-shadow:0 10px 34px rgba(192,162,240,.28);
+}
+.go span{
+  position:relative;font-family:var(--disp);font-size:23px;letter-spacing:.44em;
+  color:#1A1024;padding-left:.44em;
+}
+.go:hover::before{background:var(--bone);transform:skewX(-18deg) scale(1.04);
+  box-shadow:0 14px 44px rgba(192,162,240,.42)}
+.go:active::before{transform:skewX(-18deg) scale(.98)}
+.go:focus-visible{outline:2px solid var(--gold);outline-offset:8px}
+
+
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes title{to{opacity:1;filter:blur(0);transform:none}}
+
+/* 轉場：光掃過然後帶走整個畫面 */
+.flash{
+  position:fixed;inset:-40% -70%;z-index:9;pointer-events:none;
+  background:linear-gradient(100deg,transparent 42%,rgba(192,162,240,.5) 48%,
+    rgba(255,255,255,.72) 51%,rgba(240,200,142,.5) 54%,transparent 61%);
+  transform:translateX(-120%);opacity:0;
+}
+body.leaving .flash{animation:sweep .62s cubic-bezier(.3,.7,.3,1) forwards}
+@keyframes sweep{
+  0%{transform:translateX(-120%);opacity:1}
+  100%{transform:translateX(120%);opacity:1}}
+body.leaving .stage{
+  animation:blowout .55s .12s cubic-bezier(.4,0,.9,.5) forwards}
+@keyframes blowout{to{opacity:0;transform:scale(1.09);filter:blur(11px)}}
+
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;animation-delay:0s!important}
+}
+</style>
+</head>
+<body>
+
+<canvas id="ae"></canvas>
+
+<div class="stage">
+  <div class="eyebrow">FFXIV · Savage Loot</div>
+  <h1>菜菜的<em>裁決台</em></h1>
+  <p class="sub">誰該拿這件，這裡說了算</p>
+  <button class="go" id="go"><span>START</span></button>
+</div>
+
+<div class="flash"></div>
+
+<script>
+/* ← 換部署網址就改這一行 */
+const APP = 'https://script.google.com/macros/s/AKfycbzorXhzKAIPHnSuS4r0HCLkErNUSZA_M0rPtwMze7hJwf4nGL_lMt0mqqyi0jSZqpaB/exec';
+
+const hover = new Audio('hover.mp3'); hover.volume = .3;
+const play  = a => { try{ a.currentTime = 0; const p = a.play(); if (p && p.catch) p.catch(()=>{}); }catch(e){} };
+
+/* ── 8-bit 確認音（合成，不用音檔） ──
+   25% 佔空比的脈衝波＝NES 那個音色，Web Audio 內建的方波是 50%，太厚 */
+const chip = (() => {
+  let ctx = null, wave = null;
+
+  const pulse = (duty) => {
+    const n = 34, real = new Float32Array(n), imag = new Float32Array(n);
+    for (let i = 1; i < n; i++) real[i] = (2 / (i * Math.PI)) * Math.sin(i * Math.PI * duty);
+    return ctx.createPeriodicWave(real, imag);
+  };
+
+  return () => {
+    try {
+      if (!ctx) {
+        const C = window.AudioContext || window.webkitAudioContext;
+        if (!C) return;
+        ctx = new C();
+        wave = pulse(.25);
+      }
+      if (ctx.state === 'suspended') ctx.resume();
+
+      /* C5 → E5 → G5 → C6，最後一顆拉長 */
+      const notes = [[523.25, .052], [659.25, .052], [783.99, .052], [1046.50, .30]];
+      let t = ctx.currentTime + .01;
+
+      notes.forEach(([f, dur], i) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.setPeriodicWave(wave);
+        o.frequency.setValueAtTime(f, t);
+
+        const peak = i === 3 ? .11 : .085;
+        g.gain.setValueAtTime(.0001, t);
+        g.gain.exponentialRampToValueAtTime(peak, t + .004);   // 硬起音，晶片味
+        g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+
+        o.connect(g); g.connect(ctx.destination);
+        o.start(t); o.stop(t + dur + .01);
+        t += dur * .9;                                          // 稍微疊一點，聽起來連貫
+      });
+
+      /* 尾巴補一個低八度，撐出厚度 */
+      const b = ctx.createOscillator(), bg = ctx.createGain();
+      b.setPeriodicWave(wave);
+      b.frequency.setValueAtTime(261.63, t - .3);
+      bg.gain.setValueAtTime(.0001, t - .3);
+      bg.gain.exponentialRampToValueAtTime(.05, t - .29);
+      bg.gain.exponentialRampToValueAtTime(.0001, t - .02);
+      b.connect(bg); bg.connect(ctx.destination);
+      b.start(t - .3); b.stop(t);
+    } catch (e) {}
+  };
+})();
+
+/* ── 以太浮光 ─────────────────────── */
+(() => {
+  const cv = document.getElementById('ae');
+  if (!cv || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const ctx = cv.getContext('2d');
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  let W = 0, H = 0, dots = [], rush = 0;
+
+  /* 先把光點畫成一張小圖，每幀直接貼上，比每次設 shadowBlur 快得多 */
+  const sprite = (hex) => {
+    const r = 26, c = document.createElement('canvas');
+    c.width = c.height = r * 2;
+    const g = c.getContext('2d').createRadialGradient(r, r, 0, r, r, r);
+    g.addColorStop(0,   hex + 'ff');
+    g.addColorStop(.18, hex + 'cc');
+    g.addColorStop(.45, hex + '33');
+    g.addColorStop(1,   hex + '00');
+    const cc = c.getContext('2d');
+    cc.fillStyle = g; cc.fillRect(0, 0, r * 2, r * 2);
+    return c;
+  };
+  const LILAC = sprite('#c0a2f0'), HONEY = sprite('#f0c88e');
+
+  const seed = (y) => ({
+    x: Math.random() * W,
+    y: y === undefined ? Math.random() * H : y,
+    r: (Math.random() * 1.9 + .7) * dpr,      // 半徑
+    v: (Math.random() * .22 + .07) * dpr,      // 上升速度
+    sway: Math.random() * .5 + .18,            // 左右擺幅
+    ph: Math.random() * Math.PI * 2,           // 相位
+    hz: Math.random() * .012 + .004,           // 擺動頻率
+    a: Math.random() * .5 + .28,               // 基礎亮度
+    br: Math.random() * .016 + .006,           // 呼吸速度
+    gold: Math.random() < .18
+  });
+
+  function resize() {
+    W = cv.width  = innerWidth  * dpr;
+    H = cv.height = innerHeight * dpr;
+    cv.style.width = innerWidth + 'px';
+    cv.style.height = innerHeight + 'px';
+    const want = Math.round(Math.min(64, innerWidth * innerHeight / 15000));
+    dots = Array.from({ length: want }, () => seed());
+  }
+
+  let t = 0;
+  function frame() {
+    t++;
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter';
+
+    for (const d of dots) {
+      d.y -= d.v * (1 + rush * 9);
+      d.x += Math.sin(t * d.hz + d.ph) * d.sway * dpr;
+
+      if (d.y < -30) Object.assign(d, seed(H + 20));
+
+      const a = d.a * (.62 + .38 * Math.sin(t * d.br + d.ph));
+      const s = d.r * 7;
+      ctx.globalAlpha = Math.max(0, Math.min(1, a));
+      ctx.drawImage(d.gold ? HONEY : LILAC, d.x - s, d.y - s, s * 2, s * 2);
+    }
+
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    if (rush) rush = Math.min(1, rush + .045);
+    requestAnimationFrame(frame);
+  }
+
+  addEventListener('resize', resize);
+  resize();
+  frame();
+
+  /* 按下 START 時光點跟著竄上去 */
+  window.__aeRush = () => { rush = .001; };
+})();
+
+const btn = document.getElementById('go');
+let gone = false;
+
+btn.addEventListener('mouseenter', () => play(hover));
+
+btn.addEventListener('click', () => {
+  if (gone) return;
+  gone = true;
+  chip();
+  if (window.__aeRush) window.__aeRush();
+  document.body.classList.add('leaving');
+  setTimeout(() => { location.href = APP; }, 620);
+});
+
+/* 鍵盤也能進 */
+addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); btn.click(); }
+});
+
+/* 先把 GAS 那邊的連線暖起來，按下去比較不會卡 */
+addEventListener('load', () => {
+  const l = document.createElement('link');
+  l.rel = 'preconnect';
+  l.href = 'https://script.google.com';
+  document.head.appendChild(l);
+});
+</script>
+</body>
+</html>
