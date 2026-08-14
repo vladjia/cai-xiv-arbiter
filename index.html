@@ -97,6 +97,15 @@ h1 em{font-style:normal;color:var(--arc)}
 .go:focus-visible{outline:2px solid var(--gold);outline-offset:8px}
 
 
+/* 按下 START 後原地長出來的 iframe，往上推切掉 Google 警示列 */
+#stage{position:fixed;inset:0;z-index:20;overflow:hidden;display:none;background:var(--ink)}
+#stage.on{display:block}
+#stage iframe{
+  position:absolute;left:0;top:calc(var(--cut,40px) * -1);
+  width:100%;height:calc(100% + var(--cut,40px));
+  border:0;display:block;background:var(--ink);
+}
+
 @keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @keyframes title{to{opacity:1;filter:blur(0);transform:none}}
 
@@ -132,6 +141,7 @@ body.leaving .stage{
 </div>
 
 <div class="flash"></div>
+<div id="stage"></div>
 
 <script>
 /* ← 換部署網址就改這一行 */
@@ -275,13 +285,37 @@ let gone = false;
 
 btn.addEventListener('mouseenter', () => play(hover));
 
+/* 警示列高度：桌機約 40、手機約 46。不準就開 ?cut=48 調一次，會記住 */
+const CUT = (() => {
+  const q = +(new URLSearchParams(location.search).get('cut') || 0);
+  if (q > 0) { try{ localStorage.setItem('gasCut', q); }catch(e){} return q; }
+  let s = 0; try{ s = +(localStorage.getItem('gasCut') || 0); }catch(e){}
+  return s > 0 ? s : (matchMedia('(max-width:640px)').matches ? 46 : 40);
+})();
+document.documentElement.style.setProperty('--cut', CUT + 'px');
+
 btn.addEventListener('click', () => {
   if (gone) return;
   gone = true;
   chip();
   if (window.__aeRush) window.__aeRush();
   document.body.classList.add('leaving');
-  setTimeout(() => { location.href = APP; }, 620);
+
+  /* 動畫還在跑就先開始載，GAS 冷啟動的幾秒剛好被吃掉 */
+  const p = new URLSearchParams(location.search);
+  p.delete('cut');
+  const qs = p.toString();
+  const f = document.createElement('iframe');
+  f.title = '零式裝備取得記錄';
+  f.referrerPolicy = 'no-referrer-when-downgrade';
+  f.allow = 'clipboard-write';
+  f.src = APP + (qs ? (APP.includes('?') ? '&' : '?') + qs : '');
+  document.getElementById('stage').appendChild(f);
+
+  setTimeout(() => {
+    document.getElementById('stage').classList.add('on');
+    document.body.style.overflow = 'hidden';
+  }, 620);
 });
 
 /* 鍵盤也能進 */
