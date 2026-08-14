@@ -101,8 +101,7 @@ h1 em{font-style:normal;color:var(--arc)}
 #stage{position:fixed;inset:0;z-index:20;overflow:hidden;display:none;background:var(--ink)}
 #stage.on{display:block}
 #stage iframe{
-  position:absolute;left:0;top:calc(var(--cut,40px) * -1);
-  width:100%;height:calc(100% + var(--cut,40px));
+  position:absolute;inset:0;width:100%;height:100%;
   border:0;display:block;background:var(--ink);
 }
 
@@ -284,28 +283,6 @@ const btn = document.getElementById('go');
 let gone = false;
 
 btn.addEventListener('mouseenter', () => play(hover));
-
-/* 警示列高度：桌機約 40、手機約 46。不準就開 ?cut=48 調一次，會記住 */
-const CUT = (() => {
-  const q = +(new URLSearchParams(location.search).get('cut') || 0);
-  if (q > 0) { try{ localStorage.setItem('gasCut', q); }catch(e){} return q; }
-  let s = 0; try{ s = +(localStorage.getItem('gasCut') || 0); }catch(e){}
-  return s > 0 ? s : (matchMedia('(max-width:640px)').matches ? 46 : 40);
-})();
-let cut = CUT;
-const setCut = v => {
-  cut = Math.max(0, Math.min(120, v));
-  document.documentElement.style.setProperty('--cut', cut + 'px');
-  try{ localStorage.setItem('gasCut', cut); }catch(e){}
-};
-setCut(CUT);
-
-/* 校準：進去之後按 Shift + ↑ / ↓ 兩格兩格微調，即時看到、自動記住 */
-addEventListener('keydown', e => {
-  if (!e.shiftKey || !gone) return;
-  if (e.key === 'ArrowUp')   { e.preventDefault(); setCut(cut + 2); }
-  if (e.key === 'ArrowDown') { e.preventDefault(); setCut(cut - 2); }
-});
 
 btn.addEventListener('click', () => {
   if (gone) return;
