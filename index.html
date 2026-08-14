@@ -292,7 +292,20 @@ const CUT = (() => {
   let s = 0; try{ s = +(localStorage.getItem('gasCut') || 0); }catch(e){}
   return s > 0 ? s : (matchMedia('(max-width:640px)').matches ? 46 : 40);
 })();
-document.documentElement.style.setProperty('--cut', CUT + 'px');
+let cut = CUT;
+const setCut = v => {
+  cut = Math.max(0, Math.min(120, v));
+  document.documentElement.style.setProperty('--cut', cut + 'px');
+  try{ localStorage.setItem('gasCut', cut); }catch(e){}
+};
+setCut(CUT);
+
+/* 校準：進去之後按 Shift + ↑ / ↓ 兩格兩格微調，即時看到、自動記住 */
+addEventListener('keydown', e => {
+  if (!e.shiftKey || !gone) return;
+  if (e.key === 'ArrowUp')   { e.preventDefault(); setCut(cut + 2); }
+  if (e.key === 'ArrowDown') { e.preventDefault(); setCut(cut - 2); }
+});
 
 btn.addEventListener('click', () => {
   if (gone) return;
